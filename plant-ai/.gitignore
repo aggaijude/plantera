@@ -1,0 +1,36 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Project-specific ignored directories you shouldn't push to GitHub
+dataset/
+logs/
+
+# Note: PyTorch model weights (.pth) can be very large (>50MB). 
+# If you don't want to upload the model to GitHub, uncomment the lines below.
+# (If you DO want the model on GitHub, leave them commented out!)
+# models/*.pth
+# models/*.pt
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini

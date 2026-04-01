@@ -1,0 +1,140 @@
+/* Custom CSS overrides & glassmorphism utilities for Plantera */
+
+:root {
+    --color-green: #00ff66;
+    --color-red: #ff3366;
+    --color-yellow: #ffcc00;
+}
+
+body {
+    background-color: #050a15; /* Deep space dark */
+}
+
+/* Glassmorphism Card System */
+.glass-card {
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.custom-glow {
+    box-shadow: 0 0 50px rgba(0, 255, 102, 0.05), inset 0 0 20px rgba(255, 255, 255, 0.02);
+}
+
+/* Animation Utilities */
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+    animation: float 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.1; }
+    50% { opacity: 0.3; }
+}
+
+.animate-pulse-slow {
+    animation: pulse 8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-pulse-slower {
+    animation: pulse 12s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 21st.dev Native SVG Path Animations - Performance optimized */
+.floating-path {
+    stroke-dasharray: 2000;
+    stroke-dashoffset: 2000;
+    animation: drawPath linear infinite;
+}
+
+@keyframes drawPath {
+    0%   { stroke-dashoffset: 2000; }
+    50%  { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -2000; }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* UI State Hiding (Override tailwind for specific transitions) */
+.view-section {
+    position: absolute;
+    width: 100%;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 1rem;
+}
+
+.view-section.hidden {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    position: absolute;
+}
+
+.view-section.fade-out {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.95);
+}
+
+.view-section.active {
+    position: relative;
+    opacity: 1;
+    top: auto;
+    transform: translateY(0) scale(1);
+    visibility: visible;
+    pointer-events: auto;
+    left: auto;
+    padding: 0;
+}
+
+/* Result Card Show Animation */
+.result-show {
+    opacity: 1 !important;
+    transform: scale(1) !important;
+}
+
+/* Button glow effects */
+.neon-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.neon-btn::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 60%);
+    opacity: 0;
+    transform: scale(0.5);
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
+}
+
+.neon-btn:hover::after {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Color thematic utility classes to apply via JS */
+.text-theme-green { color: var(--color-green) !important; text-shadow: 0 0 20px rgba(0,255,102,0.4); }
+.text-theme-yellow { color: var(--color-yellow) !important; text-shadow: 0 0 20px rgba(255,204,0,0.4); }
+.text-theme-red { color: var(--color-red) !important; text-shadow: 0 0 20px rgba(255,51,102,0.4); }
+
+.bg-theme-green { background-color: var(--color-green) !important; box-shadow: 0 0 20px rgba(0,255,102,0.6); }
+.bg-theme-yellow { background-color: var(--color-yellow) !important; box-shadow: 0 0 20px rgba(255,204,0,0.6); }
+.bg-theme-red { background-color: var(--color-red) !important; box-shadow: 0 0 20px rgba(255,51,102,0.6); }

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plantera - Smart Plant Analysis</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            green: '#00ff66',
+                            dark: '#0f172a',
+                            surface: 'rgba(30, 41, 59, 0.7)',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        tech: ['Orbitron', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="bg-gray-950 text-gray-100 font-sans min-h-screen relative overflow-x-hidden selection:bg-brand-green selection:text-black">
+
+    <!-- INSERT 21ST.DEV BACKGROUND EFFECT HERE -->
+    <div id="background-container" class="fixed inset-0 z-0 pointer-events-none">
+        <!-- BACKGROUND EFFECT SLOT (21ST.DEV) - Native Vanilla Implementation -->
+        <div class="absolute inset-0 pointer-events-none opacity-30">
+            <svg id="floating-paths-1" class="w-full h-full text-white absolute inset-0" viewBox="0 0 696 316" fill="none"></svg>
+            <svg id="floating-paths-2" class="w-full h-full text-white absolute inset-0" viewBox="0 0 696 316" fill="none"></svg>
+        </div>
+
+        <!-- Ambient Lighting (Static radial gradients - zero GPU cost) -->
+        <div class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full transform-gpu" style="background: radial-gradient(circle, rgba(0,255,102,0.08) 0%, transparent 70%)"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full transform-gpu" style="background: radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)"></div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div class="relative z-10 w-full min-h-screen flex flex-col items-center justify-center p-4">
+
+        <!-- 1. WELCOME PAGE -->
+        <section id="welcome-page" class="view-section active flex flex-col items-center justify-center text-center w-full max-w-4xl transition-all duration-700">
+            <div class="glass-card p-10 md:p-20 rounded-3xl border border-white/5 shadow-2xl custom-glow max-w-2xl w-full mx-auto relative overflow-hidden group">
+                
+                <div class="mb-6 relative inline-block">
+                    <i data-lucide="leaf" class="w-16 h-16 text-brand-green mx-auto relative z-10 animate-float"></i>
+                    <div class="absolute inset-0 bg-brand-green blur-xl opacity-30 group-hover:opacity-50 transition-opacity"></div>
+                </div>
+
+                <h1 class="text-5xl md:text-6xl font-tech font-bold text-white mb-2 tracking-tight">Plantera</h1>
+                <h2 class="text-xl md:text-2xl text-brand-green font-medium mb-6">AI-Powered Plant Health Analyzer</h2>
+                <p class="text-gray-400 mb-10 max-w-md mx-auto leading-relaxed">
+                    Upload a plant leaf image and get an instant, precision health analysis using deep AI modeling.
+                </p>
+
+                <button id="getStartedBtn" class="neon-btn group inline-flex items-center gap-3 px-8 py-4 bg-brand-green text-gray-950 font-bold rounded-full text-lg shadow-[0_0_20px_rgba(0,255,102,0.3)] hover:shadow-[0_0_30px_rgba(0,255,102,0.5)] transition-all hover:-translate-y-1">
+                    <span>Get Started</span>
+                    <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- 2. DASHBOARD PAGE -->
+        <section id="dashboard-page" class="view-section hidden flex flex-col items-center justify-center w-full max-w-3xl py-10 transition-all duration-700 opacity-0 translate-y-8">
+            
+            <!-- Header -->
+            <header class="text-center mb-8 relative z-20">
+                <div class="flex items-center justify-center gap-3 mb-2">
+                    <i data-lucide="leaf" class="w-8 h-8 text-brand-green"></i>
+                    <h1 class="text-4xl font-tech font-bold text-white tracking-wide">Plantera</h1>
+                </div>
+                <p class="text-gray-400 text-sm tracking-wider uppercase">Smart Plant Disease Detection</p>
+            </header>
+
+            <!-- Main Input Card -->
+            <main class="w-full glass-card rounded-3xl border border-white/10 shadow-2xl overflow-hidden relative z-20">
+                
+                <!-- Input Section -->
+                <div id="input-view" class="p-6 md:p-10">
+                    
+                    <!-- Drag & Drop Zone -->
+                    <div id="drop-zone" class="border-2 border-dashed border-gray-600 hover:border-brand-green/50 bg-gray-900/50 rounded-2xl p-8 md:p-12 text-center transition-all cursor-pointer group mb-6 relative overflow-hidden">
+                        
+                        <input type="file" id="imageUpload" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                        
+                        <div class="relative z-0 flex flex-col items-center justify-center pointer-events-none">
+                            <div class="p-4 bg-gray-800 rounded-full mb-4 group-hover:scale-110 group-hover:bg-gray-700 group-hover:text-brand-green transition-all shadow-inner">
+                                <i data-lucide="upload-cloud" class="w-8 h-8 text-gray-400 group-hover:text-brand-green transition-colors"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-white mb-2">Upload Photo</h3>
+                            <p class="text-sm text-gray-500">Drag & drop or click to browse</p>
+                        </div>
+                    </div>
+
+                    <div id="alternate-actions-container">
+                        <div class="flex items-center justify-between gap-4 w-full mb-6">
+                            <div class="h-px bg-gray-700 flex-1"></div>
+                            <span class="text-xs text-gray-500 uppercase tracking-widest font-semibold flex-shrink-0">Or alternative</span>
+                            <div class="h-px bg-gray-700 flex-1"></div>
+                        </div>
+
+                        <!-- Alternate Inputs -->
+                        <div class="flex justify-center">
+                            <button id="cameraBtn" class="flex items-center justify-center gap-3 w-full md:w-auto px-8 py-3.5 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-xl border border-white/5 transition-colors shadow-lg active:scale-95">
+                                <i data-lucide="camera" class="w-5 h-5 text-brand-green"></i>
+                                Use Camera
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Live Camera Box (Hidden initially) -->
+                    <div id="camera-box" class="hidden flex-col items-center justify-center animate-fade-in">
+                        <div class="relative rounded-2xl overflow-hidden border border-gray-700 shadow-2xl w-full max-w-sm mb-4 bg-black aspect-square md:aspect-video flex items-center justify-center">
+                            <video id="videoElement" autoplay playsinline class="w-full h-full object-cover"></video>
+                            <div class="absolute inset-x-8 inset-y-8 border-2 border-brand-green/30 rounded-lg pointer-events-none"></div>
+                            <!-- Crosshairs -->
+                            <div class="absolute top-1/2 left-1/2 w-8 h-8 -translate-x-1/2 -translate-y-1/2 border border-brand-green/50 rounded-full pointer-events-none"></div>
+                        </div>
+                        <div class="flex items-center justify-center gap-4">
+                            <button id="cancelCameraBtn" class="px-6 py-3 bg-gray-800 text-gray-300 font-semibold rounded-full hover:bg-gray-700 transition-colors shadow-lg active:scale-95">Cancel</button>
+                            <button id="captureBtn" class="flex items-center gap-2 px-8 py-3 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-colors shadow-[0_0_15px_rgba(255,255,255,0.4)] active:scale-95">
+                                <i data-lucide="aperture" class="w-5 h-5"></i>
+                                Capture
+                            </button>
+                        </div>
+                        <canvas id="canvasElement" class="hidden"></canvas>
+                    </div>
+                </div>
+
+                <!-- Preview & Action View (Hidden initially) -->
+                <div id="preview-view" class="hidden p-6 md:p-10 border-t border-gray-800 bg-gray-900/30">
+                    <div class="flex flex-col md:flex-row gap-8 items-center">
+                        <div class="w-full md:w-1/2 relative group rounded-2xl overflow-hidden border border-gray-700 shadow-xl bg-black">
+                            <img id="imagePreview" src="" alt="Selected Image" class="w-full h-56 object-cover group-hover:opacity-80 transition-opacity">
+                            <button id="resetImageBtn" class="absolute top-3 right-3 p-2 bg-black/80 text-white rounded-full hover:bg-red-500 transition-colors shadow-lg active:scale-90" title="Remove image">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                            <div class="absolute bottom-3 left-3 px-3 py-1 bg-black/80 text-xs text-white rounded-md">Target Acquired</div>
+                        </div>
+                        <div class="w-full md:w-1/2 flex flex-col justify-center">
+                            <h3 class="text-white text-lg font-medium mb-1">Deep Scan Ready</h3>
+                            <p class="text-sm text-gray-400 mb-6">Neural networks primed to evaluate botanical pathology signatures.</p>
+                            
+                            <button id="analyzeBtn" class="neon-btn w-full flex items-center justify-center gap-3 px-6 py-4 bg-brand-green text-gray-950 font-bold rounded-xl text-lg shadow-[0_0_15px_rgba(0,255,102,0.2)] hover:shadow-[0_0_25px_rgba(0,255,102,0.4)] disabled:opacity-50 disabled:shadow-none transition-all active:scale-[0.98]">
+                                <i data-lucide="cpu" class="w-5 h-5"></i>
+                                Analyze Plant
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading State (Hidden) -->
+                <div id="loadingIndicator" class="hidden absolute inset-0 z-20 bg-gray-950/95 flex-col items-center justify-center">
+                    <div class="relative w-24 h-24 flex items-center justify-center mb-6">
+                        <div class="absolute inset-0 border-4 border-gray-800 rounded-full"></div>
+                        <div class="absolute inset-0 border-4 border-brand-green rounded-full border-t-transparent animate-spin" style="animation-duration: 1s;"></div>
+                        <div class="absolute inset-2 border-4 border-blue-500/50 rounded-full border-b-transparent animate-spin" style="animation-duration: 1.5s; animation-direction: reverse;"></div>
+                        <i data-lucide="fingerprint" class="w-8 h-8 text-brand-green animate-pulse"></i>
+                    </div>
+                    <h3 class="text-xl font-tech font-bold text-white tracking-widest uppercase">Processing</h3>
+                    <p class="text-sm text-brand-green/70 mt-2 font-mono">Running EfficientNet Pattern Matching...</p>
+                </div>
+            </main>
+
+            <!-- Results Card (Hidden) -->
+            <div id="resultSection" class="hidden mt-6 w-full glass-card rounded-3xl border border-white/10 shadow-2xl p-6 md:p-8 relative overflow-hidden transition-all duration-500 transform scale-95 opacity-0 z-20">
+                
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-green to-transparent opacity-50"></div>
+
+                <div class="flex items-center justify-between mx-1 mb-8">
+                    <h2 class="text-2xl font-tech font-bold text-white flex items-center gap-3">
+                        <i data-lucide="check-circle-2" class="w-7 h-7 text-brand-green"></i> 
+                        Diagnosis Complete
+                    </h2>
+                    <button class="reset-app-btn text-brand-green bg-brand-green/10 hover:bg-brand-green/20 px-4 py-2 rounded-lg font-medium tracking-wide text-sm transition-colors flex items-center gap-2 active:scale-95">
+                        <i data-lucide="plus" class="w-4 h-4"></i> New Scan
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                    <!-- Score Matrix -->
+                    <div class="bg-gray-900/60 rounded-2xl p-6 md:p-8 border border-white/5 flex flex-col justify-center items-center text-center relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-brand-green/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <span class="text-gray-400 text-xs md:text-sm font-medium uppercase tracking-[0.2em] mb-3 z-10 flex items-center gap-2">
+                            <i data-lucide="activity" class="w-4 h-4 text-brand-green"></i>
+                            Health Index
+                        </span>
+                        
+                        <div class="flex items-baseline gap-2 mb-6 z-10">
+                            <span id="healthScoreDisplay" class="text-6xl md:text-7xl font-tech font-bold text-brand-green tracking-tighter">0</span>
+                            <span class="text-xl md:text-2xl text-gray-500 font-tech">/ 100</span>
+                        </div>
+                        
+                        <div class="w-full h-4 bg-gray-950 rounded-full overflow-hidden z-10 shadow-inner border border-gray-800">
+                            <div id="scoreBar" class="h-full bg-brand-green rounded-full w-0 transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(0,255,102,0.8)] relative">
+                                <div class="absolute inset-0 bg-white/20"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Details Matrix -->
+                    <div class="flex flex-col gap-4">
+                        <div class="bg-gray-900/60 rounded-2xl p-5 border border-white/5 relative group hover:border-gray-700 transition-colors shadow-inner overflow-hidden flex-1 flex flex-col justify-center">
+                            <div class="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                                <i data-lucide="microscope" class="w-16 h-16"></i>
+                            </div>
+                            <span class="text-xs text-gray-500 uppercase tracking-widest block mb-2 font-medium z-10">Pathogen / Specimen</span>
+                            <h3 id="predictionText" class="text-lg md:text-xl font-bold text-white tracking-wide truncate z-10 leading-tight">Processing...</h3>
+                        </div>
+                        
+                        <div class="bg-gray-900/60 rounded-2xl p-5 border border-white/5 relative group hover:border-gray-700 transition-colors shadow-inner flex-1 flex flex-col justify-center">
+                            <span class="text-xs text-gray-500 uppercase tracking-widest block mb-2 font-medium">Network Confidence</span>
+                            <div class="flex items-center gap-4">
+                                <h3 class="text-xl font-bold text-white w-20 flex-shrink-0"><span id="confidenceText">0.00</span><span class="text-gray-500 text-lg">%</span></h3>
+                                <div class="flex-1 h-2 bg-gray-950 border border-gray-800 rounded-full overflow-hidden">
+                                     <div id="confidenceBar" class="h-full bg-blue-500 w-0 transition-all duration-1000 delay-300 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </div>
+
+    <!-- Background Path Generator (Vanilla implementation of 21st.dev component) -->
+    <script>
+        function generateFloatingPaths(position) {
+            let svgContent = '<title>Background Paths</title>';
+            // Ultra-optimized: only 10 paths per SVG, spread out for visual coverage
+            for (let i = 0; i < 36; i += 4) {
+                const d = `M-${380 - i * 5 * position} -${189 + i * 6}C-${380 - i * 5 * position} -${189 + i * 6} -${312 - i * 5 * position} ${216 - i * 6} ${152 - i * 5 * position} ${343 - i * 6}C${616 - i * 5 * position} ${470 - i * 6} ${684 - i * 5 * position} ${875 - i * 6} ${684 - i * 5 * position} ${875 - i * 6}`;
+                const width = 0.5 + i * 0.04;
+                const opacity = 0.08 + i * 0.02;
+                const duration = 25 + i * 2;
+                
+                svgContent += `<path d="${d}" stroke="currentColor" stroke-width="${width}" stroke-opacity="${opacity}" class="floating-path" style="animation-duration: ${duration}s;"></path>`;
+            }
+            return svgContent;
+        }
+        document.getElementById('floating-paths-1').innerHTML = generateFloatingPaths(1);
+        document.getElementById('floating-paths-2').innerHTML = generateFloatingPaths(-1);
+    </script>
+
+    <!-- Scripts -->
+    <script>
+        lucide.createIcons();
+    </script>
+    <script src="/static/script.js"></script>
+</body>
+</html>
