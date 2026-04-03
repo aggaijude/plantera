@@ -31,7 +31,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=2">
 </head>
 <body class="bg-gray-950 text-gray-100 font-sans min-h-screen relative overflow-x-hidden selection:bg-brand-green selection:text-black">
 
@@ -201,7 +201,7 @@
                         
                         <div class="flex items-baseline gap-2 mb-6 z-10">
                             <span id="healthScoreDisplay" class="text-6xl md:text-7xl font-tech font-bold text-brand-green tracking-tighter">0</span>
-                            <span class="text-xl md:text-2xl text-gray-500 font-tech">/ 100</span>
+                            <span id="healthScoreMax" class="text-xl md:text-2xl text-gray-500 font-tech">/ 100</span>
                         </div>
                         
                         <div class="w-full h-4 bg-gray-950 rounded-full overflow-hidden z-10 shadow-inner border border-gray-800">
@@ -219,6 +219,7 @@
                             </div>
                             <span class="text-xs text-gray-500 uppercase tracking-widest block mb-2 font-medium z-10">Pathogen / Specimen</span>
                             <h3 id="predictionText" class="text-lg md:text-xl font-bold text-white tracking-wide truncate z-10 leading-tight">Processing...</h3>
+                            <p id="statusText" class="text-sm font-tech text-gray-400 mt-1 z-10 truncate"></p>
                         </div>
                         
                         <div class="bg-gray-900/60 rounded-2xl p-5 border border-white/5 relative group hover:border-gray-700 transition-colors shadow-inner flex-1 flex flex-col justify-center">
@@ -232,6 +233,33 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- HEATMAP CONTAINER -->
+                <div id="heatmap-container" class="hidden mt-8 w-full border-t border-white/10 pt-8">
+                    <h3 class="text-lg font-tech text-white mb-6 uppercase tracking-wider flex items-center gap-3">
+                        <i data-lucide="scan" class="w-5 h-5 text-brand-green"></i> AI Analysis Heatmap
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Original Capture -->
+                        <div class="bg-gray-900/60 rounded-2xl overflow-hidden border border-white/10 relative p-3">
+                            <div class="absolute top-5 left-5 z-10 px-3 py-1 bg-black/80 text-xs font-mono text-white rounded border border-gray-700">INPUT</div>
+                            <img id="originalResultImage" src="" alt="Original Scanner Input" class="w-full aspect-video object-cover rounded-xl opacity-90 mx-auto">
+                        </div>
+                        
+                        <!-- Grad-CAM Output -->
+                        <div class="bg-gray-900/60 rounded-2xl overflow-hidden border border-brand-green/30 relative shadow-[0_0_20px_rgba(0,255,102,0.1)] p-3 group">
+                            <div class="absolute top-5 right-5 z-10 px-3 py-1 bg-black/80 text-xs font-mono text-brand-green rounded border border-brand-green/50 flex items-center gap-2">
+                                <span class="relative flex h-2 w-2">
+                                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-green opacity-75"></span>
+                                  <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-green"></span>
+                                </span>
+                                GRAD-CAM
+                            </div>
+                            <img id="heatmapImage" src="" alt="Grad-CAM Visualization" class="w-full aspect-video object-cover rounded-xl transition-transform duration-700 group-hover:scale-105">
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
         </section>
@@ -260,6 +288,6 @@
     <script>
         lucide.createIcons();
     </script>
-    <script src="/static/script.js"></script>
+    <script src="/static/script.js?v=2"></script>
 </body>
 </html>

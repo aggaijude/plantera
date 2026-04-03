@@ -5,13 +5,54 @@ from torchvision import transforms, models
 from torchvision.models import efficientnet_b0
 from PIL import Image
 import json
-
+import cv2
+import numpy as np
+import torch.nn.functional as F
 # Setup Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODELS_DIR = os.path.join(BASE_DIR, "models")
 MODEL_PATH = os.path.join(MODELS_DIR, "plant_model.pth")
 CLASSES_PATH = os.path.join(MODELS_DIR, "classes.json")
 IMG_SIZE = 224
+
+# Confidence threshold — predictions below this are rejected as unsupported
+CONFIDENCE_THRESHOLD = 0.75
+
+class GradCAM:
+    def __init__(self, model, target_layer):
+        self.model = model
+        self.target_layer = target_layer
+        self.gradients = None
+        self.activations = None
+        
+        # Register hooks
+        target_layer.register_forward_hook(self.save_activation)
+        target_layer.register_full_backward_hook(self.save_gradient)
+        
+    def save_activation(self, module, input, output):
+        self.activations = output
+        
+    def save_gradient(self, module, grad_input, grad_output):
+        self.gradients = grad_output[0]
+        
+    def __call__(self, class_idx):
+        pooled_gradients = torch.mean(self.gradients, dim=[0, 2, 3])
+        # Weight the channels by corresponding gradients
+        for i in range(self.activations.shape[1]):
+            self.activations[:, i, :, :] *= pooled_gradients[i]
+            
+        # Average the channels of the activations
+        heatmap = torch.mean(self.activations, dim=1).squeeze()
+        
+        # Apply ReLU
+        heatmap = F.relu(heatmap)
+        
+        # Normalize the heatmap
+        heatmap_max = torch.max(heatmap)
+        if heatmap_max > 0:
+            heatmap /= heatmap_max
+            
+        return heatmap.cpu().detach().numpy()
 
 # Configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -48,48 +89,107 @@ def preprocess_image(image_file):
     
     return transform(image).unsqueeze(0).to(device)
 
-def calculate_health_score(predicted_class, class_probabilities, classes):
+def calculate_health_index(predicted_class, confidence):
     """
-    Computes plant health score based on probability.
-    health_score = probability_of_healthy_class * 100
-    If disease classes dominate, the healthy probability naturally approaches 0,
-    reducing the score accordingly.
+    Computes plant health index dynamically based on severity and confidence.
+    Returns an integer clamped to [0, 100], or None if inputs are invalid.
     """
-    # Find indices for all 'healthy' classes
-    healthy_indices = [i for i, c in enumerate(classes) if 'healthy' in c.lower()]
+    if not predicted_class or confidence is None:
+        return None
+
+    class_name_lower = predicted_class.lower()
     
-    if not healthy_indices:
-        # Fallback if no healthy class exists (shouldn't happen with PlantVillage)
-        return 0
-        
-    # Sum the probabilities of all healthy classes
-    healthy_prob_sum = sum(class_probabilities[0][i].item() for i in healthy_indices)
+    if "healthy" in class_name_lower:
+        # Score 90-100 based on confidence
+        base_score = 90
+        score = base_score + (10 * confidence)
+    elif "early" in class_name_lower or "mild" in class_name_lower:
+        # Score 60-80
+        score = 60 + (20 * (1 - confidence))
+    else:
+        # Severe disease: Score 20-50
+        score = 20 + (30 * (1 - confidence))
     
-    # Calculate score
-    health_score = healthy_prob_sum * 100
-    
-    # Cap between 0 and 100 and round
-    return max(0, min(100, round(health_score)))
+    # Safety clamp to valid range
+    return int(round(min(100, max(0, score))))
 
 def predict(image_source):
     model, classes = load_model()
-    image_tensor = preprocess_image(image_source)
     
-    with torch.no_grad():
-        outputs = model(image_tensor)
-        probabilities = torch.nn.functional.softmax(outputs, dim=1)
+    # Needs original image for overlay
+    if isinstance(image_source, str):
+        original_pil = Image.open(image_source).convert('RGB')
+    else:
+        original_pil = image_source.convert('RGB')
         
+    image_tensor = preprocess_image(original_pil)
+    image_tensor.requires_grad_(True)
+    
+    # Intialize GradCAM targeting the final convolution block
+    cam = GradCAM(model, model.features[-1])
+    
+    # We purposefully exclude torch.no_grad() so we can execute backwards pass
+    outputs = model(image_tensor)
+    probabilities = torch.nn.functional.softmax(outputs, dim=1)
+    
     confidence, predicted_idx = torch.max(probabilities, 1)
     
     predicted_class = classes[predicted_idx.item()]
-    confidence_pct = confidence.item() * 100
+    conf_value = float(confidence.item())
     
-    health_score = calculate_health_score(predicted_class, probabilities, classes)
+    # ── Confidence Rejection Gate ──────────────────────────────────
+    if conf_value < CONFIDENCE_THRESHOLD:
+        # Two-tier messaging for better UX
+        if conf_value < 0.50:
+            status_msg = "Image is likely not a plant"
+        else:
+            status_msg = "Unknown plant species or unsupported image"
+        return {
+            "prediction": "Unsupported Plant Species",
+            "confidence": conf_value,
+            "health_index": None,
+            "status": status_msg,
+            "heatmap_url": None
+        }
+    
+    # ── Grad-CAM Heatmap Generation ───────────────────────────────
+    heatmap_url = None
+    try:
+        model.zero_grad()
+        class_score = outputs[0, predicted_idx]
+        class_score.backward()
+        
+        heatmap_np = cam(predicted_idx)
+        heatmap_resized = cv2.resize(heatmap_np, (original_pil.width, original_pil.height))
+        heatmap_resized = np.uint8(255 * heatmap_resized)
+        heatmap_colored = cv2.applyColorMap(heatmap_resized, cv2.COLORMAP_JET)
+        
+        # Convert original to BGR for cv2 overlay
+        original_cv2 = cv2.cvtColor(np.array(original_pil), cv2.COLOR_RGB2BGR)
+        overlay = cv2.addWeighted(original_cv2, 0.6, heatmap_colored, 0.4, 0)
+        
+        save_dir = os.path.join(BASE_DIR, "web", "results")
+        os.makedirs(save_dir, exist_ok=True)
+        
+        heatmap_path = os.path.join(save_dir, "heatmap_output.png")
+        cv2.imwrite(heatmap_path, overlay)
+        heatmap_url = "/static/results/heatmap_output.png"
+    except Exception as e:
+        print(f"[Grad-CAM Warning] Heatmap generation failed: {e}")
+        heatmap_url = None
+        
+    # ── Health Index Calculation ───────────────────────────────────
+    health_index = calculate_health_index(predicted_class, conf_value)
+    
+    # Determine basic status
+    status = "Healthy" if "healthy" in predicted_class.lower() else "Disease Detected"
     
     result = {
         "prediction": predicted_class.replace("_", " ").title(),
-        "health_score": health_score,
-        "confidence": confidence_pct
+        "confidence": conf_value,
+        "health_index": health_index,
+        "status": status,
+        "heatmap_url": heatmap_url
     }
     
     return result

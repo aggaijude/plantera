@@ -1,0 +1,7 @@
+{
+  "prediction": "Tomato  Tomato Mosaic Virus",
+  "confidence": 0.9581631422042847,
+  "health_index": 21,
+  "status": "Disease Detected",
+  "heatmap_url": "/static/results/heatmap_output.png"
+}

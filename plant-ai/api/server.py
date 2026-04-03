@@ -35,10 +35,33 @@ async def predict_plant_health(image: UploadFile = File(...)):
         
         # Call the inference logic
         result = predict.predict(pil_image)
+        
+        # ── Null-safety sanitizer ─────────────────────────────────
+        # Guarantee health_index is either a valid number or null
+        hi = result.get("health_index")
+        if hi is None or not isinstance(hi, (int, float)):
+            result["health_index"] = None
+        else:
+            result["health_index"] = int(min(100, max(0, hi)))
+        
+        # Guarantee heatmap_url is either a string or null
+        if not isinstance(result.get("heatmap_url"), str):
+            result["heatmap_url"] = None
+            
         return JSONResponse(content=result)
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        # Return a graceful fallback instead of a 500 error 
+        # so the frontend always gets a parseable JSON response
+        return JSONResponse(content={
+            "prediction": "Analysis Error",
+            "confidence": 0.0,
+            "health_index": None,
+            "status": "An error occurred during analysis",
+            "heatmap_url": None
+        }, status_code=200)
 
 if __name__ == "__main__":
     import uvicorn

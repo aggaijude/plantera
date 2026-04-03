@@ -36,6 +36,29 @@ const confidenceBar = document.getElementById('confidenceBar');
 let selectedFile = null;
 let cameraStream = null;
 
+/* ====================================
+   SAFETY HELPERS — Prevent "Undefined"
+==================================== */
+
+/** Returns a valid integer score or null — NEVER undefined */
+function isValidScore(val) {
+    if (val === null || val === undefined || val === 'undefined') return null;
+    const n = Number(val);
+    if (Number.isNaN(n) || !Number.isFinite(n)) return null;
+    return Math.round(Math.min(100, Math.max(0, n)));
+}
+
+/** Sanitizes the API response so no field is ever raw undefined */
+function sanitizeResponse(data) {
+    return {
+        prediction:  data.prediction  || 'Analysis Error',
+        confidence:  typeof data.confidence === 'number' ? data.confidence : 0,
+        health_index: isValidScore(data.health_index),
+        status:      data.status      || '',
+        heatmap_url: (typeof data.heatmap_url === 'string' && data.heatmap_url) ? data.heatmap_url : null
+    };
+}
+
 // Routing: Welcome -> Dashboard
 getStartedBtn.addEventListener('click', () => {
     // Add slide out animation out of welcome page
@@ -211,8 +234,9 @@ analyzeBtn.addEventListener('click', async () => {
 
         if (!res.ok) throw new Error('Prediction API rejected the request.');
 
-        const data = await res.json();
-        const score = data.health_score;
+        const raw  = await res.json();
+        const data  = sanitizeResponse(raw);
+        const score = data.health_index;
 
         // Artificial delay so the processing animation can be experienced by the user
         setTimeout(() => {
@@ -226,21 +250,59 @@ analyzeBtn.addEventListener('click', async () => {
             confidenceBar.style.width = '0%';
 
             // 3. Mount text results
-            healthScoreDisplay.innerText = score;
+            healthScoreDisplay.innerText = (score != null && score !== undefined) ? score : 'N/A';
+            
+            // Show or hide the "/ 100" label based on whether we have a valid score
+            const healthScoreMax = document.getElementById('healthScoreMax');
+            if (healthScoreMax) {
+                healthScoreMax.style.display = (score != null && score !== undefined) ? '' : 'none';
+            }
+            
             predictionText.innerText = data.prediction;
-            confidenceText.innerText = data.confidence.toFixed(2);
+            
+            const statusText = document.getElementById('statusText');
+            if (statusText) {
+                statusText.innerText = data.status;
+                if (data.status.includes("not a plant") || data.status.includes("Unsupported")) {
+                    statusText.className = "text-sm font-tech text-theme-red mt-1 z-10 truncate";
+                } else if (data.status.includes("Healthy")) {
+                    statusText.className = "text-sm font-tech text-theme-green mt-1 z-10 truncate";
+                } else {
+                    statusText.className = "text-sm font-tech text-theme-yellow mt-1 z-10 truncate";
+                }
+            }
+
+            confidenceText.innerText = (data.confidence * 100).toFixed(1);
             
             // 4. Update the color themes based on the health integer
             updateScoreStyles(score);
 
+            // Fetch and mount heatmap logic
+            const heatmapContainer = document.getElementById('heatmap-container');
+            const originalResultImage = document.getElementById('originalResultImage');
+            const heatmapImage = document.getElementById('heatmapImage');
+            
+            if (heatmapContainer && originalResultImage && heatmapImage) {
+                if (data.heatmap_url) {
+                    originalResultImage.src = imagePreview.src;
+                    heatmapImage.src = data.heatmap_url + "?t=" + new Date().getTime(); // bypass cache
+                    heatmapContainer.classList.remove('hidden');
+                } else {
+                    heatmapContainer.classList.add('hidden');
+                }
+            }
+
             // 5. Trigger CSS animations
-            resultSection.classList.remove('hidden'); 
+            resultSection.classList.remove('hidden');
+
+            // Re-initialize Lucide icons for dynamically revealed DOM elements
+            if (typeof lucide !== 'undefined') lucide.createIcons();
             
             // Allow DOM repainting before executing CSS transition scale/opacity
             setTimeout(() => {
                 resultSection.classList.add('result-show');
-                scoreBar.style.width = `${score}%`;
-                confidenceBar.style.width = `${data.confidence.toFixed(0)}%`;
+                scoreBar.style.width = (score != null && score !== undefined) ? `${score}%` : '0%';
+                confidenceBar.style.width = `${(data.confidence * 100).toFixed(0)}%`;
             }, 50);
             
         }, 1200);
@@ -259,7 +321,10 @@ function updateScoreStyles(score) {
     scoreBar.className = 'h-full rounded-full transition-all duration-1000 ease-out shadow-lg relative ' + 
                          'w-0'; // Ensure width is 0 before animating
 
-    if (score >= 70) {
+    if (score == null || score === undefined) {
+        healthScoreDisplay.classList.add('text-gray-500');
+        scoreBar.classList.add('bg-gray-500');
+    } else if (score >= 70) {
         healthScoreDisplay.classList.add('text-theme-green');
         scoreBar.classList.add('bg-theme-green');
     } else if (score >= 40) {
