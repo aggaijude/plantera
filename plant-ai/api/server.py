@@ -66,4 +66,4 @@ async def predict_plant_health(image: UploadFile = File(...)):
 if __name__ == "__main__":
     import uvicorn
     # Make sure to run the server from the root of plant-ai
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("server:app", host="0.0.0.0", port=8555, reload=True)

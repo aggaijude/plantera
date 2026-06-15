@@ -285,7 +285,7 @@ analyzeBtn.addEventListener('click', async () => {
             if (heatmapContainer && originalResultImage && heatmapImage) {
                 if (data.heatmap_url) {
                     originalResultImage.src = imagePreview.src;
-                    heatmapImage.src = data.heatmap_url + "?t=" + new Date().getTime(); // bypass cache
+                    heatmapImage.src = data.heatmap_url.startsWith('data:') ? data.heatmap_url : data.heatmap_url + "?t=" + new Date().getTime(); // bypass cache for files
                     heatmapContainer.classList.remove('hidden');
                 } else {
                     heatmapContainer.classList.add('hidden');
